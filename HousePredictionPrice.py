@@ -135,9 +135,6 @@ f, ax = plt.subplots(figsize=(8, 6))
 fig = sns.boxplot(x=var, y="SalePrice", data=data)
 fig.axis(ymin=0, ymax=800000);
 
-# HouseAge vs Sale Price
-#sns.jointplot(x=train_df['HouseAge'], y=train_df['SalePrice'], kind='reg')
-
 # YearsSinceRemodelled vs Sale Price
 sns.jointplot(x=train_df['YearsSinceRemodelled'], y=train_df['SalePrice'], kind='reg')
 
