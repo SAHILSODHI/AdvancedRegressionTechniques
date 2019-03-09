@@ -1,8 +1,6 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sun Dec 30 15:56:30 2018
-
 @author: sahilsodhi
 """
 import numpy as np
@@ -23,8 +21,8 @@ test_df_id = test_df.pop('Id')
 
 train_df.info()
         
-#categ_columns = train_df.select_dtypes(include=['object']).copy().columns.values
-#categ_columns_int = train_df.select_dtypes(include=['int']).copy().columns.values
+categ_columns = train_df.select_dtypes(include=['object']).copy().columns.values
+categ_columns_int = train_df.select_dtypes(include=['int']).copy().columns.values
 
 # Nominal Classification
 train_df['MSSubClass']= train_df['MSSubClass'].astype('object')
@@ -181,7 +179,8 @@ X_test_df = sc.transform(test_df)
 
 
 #feature extraction using PCA
-# number of principle components which accounts for more than 85 percent variance.
+# number of principle components which accounts for more than 85 percent variance
+# and less than 88 percent variance.
 from sklearn.decomposition import PCA
 pca = PCA(n_components = 30)
 X_train = pca.fit_transform(X_train)
@@ -223,7 +222,6 @@ lasso_pred=lass_reg.predict(X_test)
 RMLSE = np.sqrt(mean_squared_log_error(y_test,lasso_pred))
 print(RMLSE)
 # Applying Grid Search to find the best model and the best parameters
-from sklearn.model_selection import GridSearchCV
 #parameters = [{'alpha': [0.00001,0.0001,0.001,0.01,0.1,0.8], 'max_iter': [5,50,100,200]}]
 #grid_search = GridSearchCV(estimator = lass_reg,
 #                           param_grid = parameters,
@@ -346,7 +344,6 @@ xg_pred = regr.predict(X_test)
 RMLSE = np.sqrt(mean_squared_log_error(y_test, xg_pred))
 
 #0.7, 0.05, 4, 1000, 1, 0.6
-from sklearn.model_selection import GridSearchCV
 #parameters = [{'colsample_bytree': [0.7,0.8], 'learning_rate': [0.04,0.05]
 #                ,'min_child_weight':[4,5],'n_estimators':[500,1000,1500], 'reg_alpha':[1,10,50]
 #                , 'subsample':[0.4,0.6]}]
@@ -359,7 +356,6 @@ from sklearn.model_selection import GridSearchCV
 #best_accuracy = grid_search.best_score_
 #best_parameters = grid_search.best_params_
 
-#0.011492987568884776
 print ("Root Mean Square Logarithmic Error (XG Boost)=",RMLSE)
 
 #Plotting
