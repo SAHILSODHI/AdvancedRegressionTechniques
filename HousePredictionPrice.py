@@ -9,8 +9,10 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from scipy.stats import norm
 from scipy import stats
+from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_log_error
+from sklearn.model_selection import cross_val_score
 from statsmodels.stats.outliers_influence import variance_inflation_factor
 
 train_df = pd.read_csv('train.csv')
@@ -28,7 +30,7 @@ categ_columns_int = train_df.select_dtypes(include=['int']).copy().columns.value
 train_df['MSSubClass']= train_df['MSSubClass'].astype('object')
 
 #converting neighborhood to 5 nominal classification based on SalePrice
-neighborhood_map = {
+neighborhood_dict = {
         "MeadowV" : 0, "IDOTRR" : 0,"BrDale" : 0,"BrkSide" : 0, "Edwards" : 0,"OldTown" : 0,
         "Sawyer" : 0,"Blueste" : 0,"SWISU" : 0, "NPkVill": 0,"NAmes" : 0,
         "Mitchel": 1,"SawyerW" : 1,"Gilbert" : 1,"NWAmes" : 1,
@@ -39,26 +41,26 @@ neighborhood_map = {
 
 house_dict = {"1Story": 0,"1.5Unf":1,"1.5Fin":2, "SFoyer":3 ,"SLvl":3,"2Story": 4,"2.5Unf":5,"2.5Fin":6}
 
-roofstyle_map = {"Flat":0, "Gable":1, "Hip":1, "Shed":1, "Gambrel":2, "Mansard":2}
+roofstyle_dict = {"Flat":0, "Gable":1, "Hip":1, "Shed":1, "Gambrel":2, "Mansard":2}
 
 garage_dict = {None: 0, "Unf": 0, "RFn": 1, "Fin": 2}
 
-rating_map = {None: 0, "No":0, "Po": 1, "Mn": 2, "Fa": 2, "Av": 3, "TA": 3, "Gd": 4, "Ex": 5}
+rating_dict = {None: 0, "No":0, "Po": 1, "Mn": 2, "Fa": 2, "Av": 3, "TA": 3, "Gd": 4, "Ex": 5}
 
-train_df["RoofStyle"] = train_df["RoofStyle"].map(roofstyle_map).astype(int)
+train_df["RoofStyle"] = train_df["RoofStyle"].map(roofstyle_dict).astype(int)
 train_df["HouseStyle"] = train_df["HouseStyle"].map(house_dict).astype(int)
-train_df["Neighborhood"] = train_df["Neighborhood"].map(neighborhood_map).astype(int)
-train_df["ExterCond"] = train_df["ExterCond"].map(rating_map).astype(int)
-train_df["BsmtQual"] = train_df["BsmtQual"].map(rating_map).astype(int)
-train_df["BsmtCond"] = train_df["BsmtCond"].map(rating_map).astype(int)
-train_df["KitchenQual"] = train_df["KitchenQual"].map(rating_map).astype(int)
-train_df["FireplaceQu"] = train_df["FireplaceQu"].map(rating_map).astype(int)
-train_df["GarageQual"] = train_df["GarageQual"].map(rating_map).astype(int)
-train_df["GarageCond"] = train_df["GarageCond"].map(rating_map).astype(int)
+train_df["Neighborhood"] = train_df["Neighborhood"].map(neighborhood_dict).astype(int)
+train_df["ExterCond"] = train_df["ExterCond"].map(rating_dict).astype(int)
+train_df["BsmtQual"] = train_df["BsmtQual"].map(rating_dict).astype(int)
+train_df["BsmtCond"] = train_df["BsmtCond"].map(rating_dict).astype(int)
+train_df["KitchenQual"] = train_df["KitchenQual"].map(rating_dict).astype(int)
+train_df["FireplaceQu"] = train_df["FireplaceQu"].map(rating_dict).astype(int)
+train_df["GarageQual"] = train_df["GarageQual"].map(rating_dict).astype(int)
+train_df["GarageCond"] = train_df["GarageCond"].map(rating_dict).astype(int)
 train_df["GarageFinish"] = train_df["GarageFinish"].map(garage_dict).astype(int)
-train_df["ExterQual"] = train_df["ExterQual"].map(rating_map).astype(int)
-train_df["HeatingQC"] = train_df["HeatingQC"].map(rating_map).astype(int)
-train_df["BsmtExposure"] = train_df["BsmtExposure"].map(rating_map).astype(int)
+train_df["ExterQual"] = train_df["ExterQual"].map(rating_dict).astype(int)
+train_df["HeatingQC"] = train_df["HeatingQC"].map(rating_dict).astype(int)
+train_df["BsmtExposure"] = train_df["BsmtExposure"].map(rating_dict).astype(int)
 train_df['TotalFloorArea'] = train_df['1stFlrSF']+train_df['2ndFlrSF']
 train_df['TotalPorchArea']=train_df['OpenPorchSF']+train_df['EnclosedPorch']+train_df['3SsnPorch']+train_df['ScreenPorch']
 train_df['TotalBathrooms']=train_df['FullBath']+train_df['BsmtHalfBath']+train_df['BsmtFullBath']+train_df['HalfBath']
@@ -178,7 +180,7 @@ X_test_df = sc.transform(test_df)
 #feature extraction using PCA
 # number of principle components which accounts for more than 85 percent variance
 # and less than 88 percent variance.
-from sklearn.decomposition import PCA
+
 pca = PCA(n_components = 30)
 X_train = pca.fit_transform(X_train)
 X_test = pca.transform(X_test)
@@ -195,7 +197,7 @@ lin_pred=lin_reg.predict(X_test)
 RMLSE = np.sqrt(mean_squared_log_error(y_test,lin_pred))
 print(RMLSE)
 
-#Plot to visualize prediction errors.
+#Plotting cross validated errors.
 #https://scikit-learn.org/0.16/auto_examples/plot_cv_predict.html
 
 fig, ax = plt.subplots()
@@ -205,7 +207,6 @@ ax.set(xlabel='Measured', ylabel='Predicted')
 plt.title('Linear Regression')
 plt.show()
 
-from sklearn.model_selection import cross_val_score
 accuracies = cross_val_score(estimator = lin_reg, X = X_train, y = y_train, cv = 10)
 accuracies.mean()
 accuracies.std()
@@ -218,6 +219,7 @@ lass_reg=lass_reg.fit(X_train,y_train)
 lasso_pred=lass_reg.predict(X_test)
 RMLSE = np.sqrt(mean_squared_log_error(y_test,lasso_pred))
 print(RMLSE)
+
 # Applying Grid Search to find the best model and the best parameters
 #parameters = [{'alpha': [0.00001,0.0001,0.001,0.01,0.1,0.8], 'max_iter': [5,50,100,200]}]
 #grid_search = GridSearchCV(estimator = lass_reg,
@@ -234,7 +236,7 @@ accuracies = cross_val_score(estimator = lass_reg, X = X_train, y = y_train, cv 
 accuracies.mean()
 accuracies.std()
 
-#Plotting
+#Plotting cross validated errors.
 fig, ax = plt.subplots()
 ax.scatter(y_test, lasso_pred, edgecolors=(0, 0, 0), alpha=1, color='red')
 ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], '--', lw=3, color = 'black')
@@ -250,12 +252,11 @@ ridg_reg = ridg_reg.fit(X_train, y_train)
 ridg_pred = ridg_reg.predict(X_test)
 RMLSE = np.sqrt(mean_squared_log_error(y_test, ridg_pred))
 
-from sklearn.model_selection import cross_val_score
 accuracies = cross_val_score(estimator = ridg_reg, X = X_train, y = y_train, cv = 10)
 accuracies.mean()
 accuracies.std()
 
-#Plotting
+#Plotting cross validated errors.
 fig, ax = plt.subplots()
 ax.scatter(y_test, ridg_pred, edgecolors=(0, 0, 0), alpha=1, color='red')
 ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], '--', lw=3, color = 'black')
@@ -271,7 +272,7 @@ rforest=rforest.fit(X_train,y_train)
 forest_pred=rforest.predict(X_test)
 RMLSE = np.sqrt(mean_squared_log_error(y_test, forest_pred))
 
-#Plotting
+#Plotting cross validated errors.
 fig, ax = plt.subplots()
 ax.scatter(y_test, forest_pred, edgecolors=(0, 0, 0), alpha=1, color='red')
 ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], '--', lw=3, color = 'black')
@@ -290,7 +291,7 @@ gboost=clf.fit(X_train,y_train)
 gb_pred=gboost.predict(X_test)
 RMLSE = np.sqrt(mean_squared_log_error(y_test, gb_pred))
 
-#Plotting
+#Plotting cross validated errors.
 fig, ax = plt.subplots()
 ax.scatter(y_test, gb_pred, edgecolors=(0, 0, 0), alpha=1, color='red')
 ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], '--', lw=3, color = 'black')
@@ -298,7 +299,6 @@ ax.set(xlabel='Measured', ylabel='Predicted')
 plt.title('Gradient Boosting Regressor')
 plt.show()
 
-from sklearn.model_selection import cross_val_score
 accuracies = cross_val_score(estimator = gboost, X = X_train, y = y_train, cv = 10)
 accuracies.mean()
 accuracies.std()
@@ -355,7 +355,7 @@ RMLSE = np.sqrt(mean_squared_log_error(y_test, xg_pred))
 
 print ("Root Mean Square Logarithmic Error (XG Boost)=",RMLSE)
 
-#Plotting
+#Plotting cross validated errors.
 fig, ax = plt.subplots()
 ax.scatter(y_test, xg_pred, edgecolors=(0, 0, 0), alpha=1, color='red')
 ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], '--', lw=3, color = 'black')
@@ -373,7 +373,7 @@ ada_pred=regr_ada.predict(X_test)
 RMLSE = np.sqrt(mean_squared_log_error(y_test, ada_pred))
 print ("Root Mean Square Logarithmic Error (Adaptive Boosting)=",RMLSE)
 
-#Plotting
+#Plotting cross validated errors.
 fig, ax = plt.subplots()
 ax.scatter(y_test, ada_pred, edgecolors=(0, 0, 0), alpha=1, color='red')
 ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], '--', lw=3, color = 'black')
@@ -387,21 +387,21 @@ y_gboost = gboost.predict(X_test_df)
 y_rforest = rforest.predict(X_test_df)
 y_pred = (y_xgb+y_gboost+y_rforest)/3
 
-#Blending Models
-blend_pred=(gb_pred+xg_pred+forest_pred)/3
-RMLSE = np.sqrt(mean_squared_log_error(y_test, blend_pred))
-print ("Root Mean Square Logarithmic Error (Blending Models)=",RMLSE)
+#Ensemble Models
+ensemble_pred=(gb_pred+xg_pred+forest_pred)/3
+RMLSE = np.sqrt(mean_squared_log_error(y_test, ensemble_pred))
+print ("Root Mean Square Logarithmic Error (Ensemble Model ) =",RMLSE)
 
-#Plotting
+#Plotting cross validated errors.
 fig, ax = plt.subplots()
-ax.scatter(y_test, blend_pred, edgecolors=(0, 0, 0), alpha=1, color='red')
+ax.scatter(y_test, ensemble_pred, edgecolors=(0, 0, 0), alpha=1, color='red')
 ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], '--', lw=3, color = 'black')
 ax.set(xlabel='Measured', ylabel='Predicted')
-plt.title('Models Blended')
+plt.title('Ensemble Models')
 plt.show()
 
-#submission = pd.DataFrame({
-#        "Id": test_df_id,
-#        "SalePrice": y_pred
-#    })   
-#submission.to_csv('submission.csv', index=False)
+submission = pd.DataFrame({
+        "Id": test_df_id,
+        "SalePrice": y_pred
+    })   
+submission.to_csv('submission.csv', index=False)
