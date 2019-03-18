@@ -403,5 +403,6 @@ plt.show()
 submission = pd.DataFrame({
         "Id": test_df_id,
         "SalePrice": y_pred
-    })   
+})
+
 submission.to_csv('submission.csv', index=False)
