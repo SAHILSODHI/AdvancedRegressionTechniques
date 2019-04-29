@@ -14,6 +14,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_squared_log_error
 from sklearn.model_selection import cross_val_score
 from statsmodels.stats.outliers_influence import variance_inflation_factor
+from sklearn.model_selection import GridSearchCV
 
 train_df = pd.read_csv('train.csv')
 test_df = pd.read_csv('test.csv')
@@ -22,7 +23,7 @@ train_df = train_df.append(test_df, sort = False).reset_index(drop=True)
 test_df_id = test_df.pop('Id')
 
 train_df.info()
-        
+
 categ_columns = train_df.select_dtypes(include=['object']).copy().columns.values
 categ_columns_int = train_df.select_dtypes(include=['int']).copy().columns.values
 
@@ -211,6 +212,73 @@ accuracies = cross_val_score(estimator = lin_reg, X = X_train, y = y_train, cv =
 accuracies.mean()
 accuracies.std()
 
+import time
+start = time.time()
+
+from sklearn.svm import SVR
+svr_linear_reg = SVR(kernel='linear',degree = 3, C=100)
+svr_linear_reg.fit(X_train, y_train)
+
+end = time.time()
+print(end - start)
+
+svr_lin_pred=svr_linear_reg.predict(X_test)
+RMLSE = np.sqrt(mean_squared_log_error(y_test,svr_lin_pred))
+print(RMLSE)
+
+accuracies = cross_val_score(estimator = svr_linear_reg, X = X_train, y = y_train, cv = 10)
+accuracies.mean()
+accuracies.std()
+
+#Plotting cross validated errors.
+fig, ax = plt.subplots()
+ax.scatter(y_test, svr_lin_pred, edgecolors=(0, 0, 0), alpha=1, color='red')
+ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], '--', lw=3, color = 'black')
+ax.set(xlabel='Measured', ylabel='Predicted')
+plt.title('Support Vector Regression(Linear Kernel)')
+plt.show()
+
+import time
+start = time.time()
+
+svr_rbf_reg = SVR(kernel='rbf',gamma = 0.001, C=50000, epsilon = 0.1)
+svr_rbf_reg.fit(X_train, y_train)
+
+end = time.time()
+print(end - start)
+
+svr_rbf_pred=svr_rbf_reg.predict(X_test)
+RMLSE = np.sqrt(mean_squared_log_error(y_test,svr_rbf_pred))
+print(RMLSE)
+
+accuracies = cross_val_score(estimator = svr_rbf_reg, X = X_train, y = y_train, cv = 10)
+accuracies.mean()
+accuracies.std()
+
+#Plotting cross validated errors.
+fig, ax = plt.subplots()
+ax.scatter(y_test, svr_rbf_pred, edgecolors=(0, 0, 0), alpha=1, color='red')
+ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], '--', lw=3, color = 'black')
+ax.set(xlabel='Measured', ylabel='Predicted')
+plt.title('Support Vector Regression(Radial Basis Function Kernel)')
+plt.show()
+
+#Applying Grid Search to find the best model and the best parameters
+
+#parameters1 = [{'kernel': ['poly'], 'C':[40000,54000],'gamma': [0.0001,0.001,0.01],'epsilon':[0,0.001,0.01,0.05,0.1]}]
+#
+#parameters = [{'kernel': ['poly'], 'degree':[3,4,5], 'epsilon':[8, 20, 50, 100], 'gamma': [0.01, 5, 10]}]
+#grid_search = GridSearchCV(estimator = svr_rbf_reg,
+#                           param_grid = parameters,
+#                           scoring = 'explained_variance',
+#                           cv = 10,
+#                           n_jobs = -1)
+#grid_search = grid_search.fit(X_train, y_train)
+#best_accuracy = grid_search.best_score_
+#best_parameters = grid_search.best_params_
+
+
+
 #Lasso Regression
 from sklearn.linear_model import Lasso
 lass_reg = Lasso(normalize=True,alpha=0.8,max_iter=5)
@@ -264,39 +332,95 @@ ax.set(xlabel='Measured', ylabel='Predicted')
 plt.title('Ridge Regression')
 plt.show()
 
+import time
+start = time.time()
 #RandomForest Regression
 from sklearn.ensemble import RandomForestRegressor
-rforest=RandomForestRegressor(n_estimators=68, max_depth=11, bootstrap = True,random_state=0)
+rforest=RandomForestRegressor(n_estimators=130, max_depth=20, bootstrap = True,random_state=0)
 rforest=rforest.fit(X_train,y_train)
-#Predicting test dataset
+end = time.time()
+print(end - start)
 forest_pred=rforest.predict(X_test)
 RMLSE = np.sqrt(mean_squared_log_error(y_test, forest_pred))
+#print(RMLSE)
+
+
+accuracies = cross_val_score(estimator = rforest, X = X_train, y = y_train, cv = 10)
+accuracies.mean()
+accuracies.std()
+#for feature in (rforest.feature_importances_):
+#    print(feature)
+
+
+import time
+start = time.time()
+    
+#parameters = [{'n_estimators': [500], 'max_depth': [20]}]
+#grid_search = GridSearchCV(estimator = rforest,
+#                           param_grid = parameters,
+#                           scoring = 'explained_variance',
+#                           cv = 10,
+#                           n_jobs = -1)
+#grid_search = grid_search.fit(X_train, y_train)
+#best_accuracy = grid_search.best_score_
+#best_parameters = grid_search.best_params_
+#print(best_accuracy)
+
+end = time.time()
+print(end - start)
 
 #Plotting cross validated errors.
 fig, ax = plt.subplots()
 ax.scatter(y_test, forest_pred, edgecolors=(0, 0, 0), alpha=1, color='red')
 ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], '--', lw=3, color = 'black')
 ax.set(xlabel='Measured', ylabel='Predicted')
-plt.title('Random Forest')
+plt.title('Random Forests Regression')
 plt.show()
 
 #min_samples_split: Minimum number of observation which is required in a node to be considered for splitting. 
 #It is used to control overfitting.
 #Gradient Boosting Regressor
+
+import time
+start = time.time()
+
 from sklearn import ensemble
-clf = ensemble.GradientBoostingRegressor(n_estimators = 590, max_depth = 2, min_samples_split = 2, 
+clf = ensemble.GradientBoostingRegressor(n_estimators = 380, max_depth = 2, min_samples_split = 2, 
                                          learning_rate = 0.06, loss = 'ls')
 gboost=clf.fit(X_train,y_train)
+
+end = time.time()
+print(end - start)
 #Predicting test dataset
 gb_pred=gboost.predict(X_test)
 RMLSE = np.sqrt(mean_squared_log_error(y_test, gb_pred))
+print(RMLSE)
+
+accuracies = cross_val_score(estimator = clf, X = X_train, y = y_train, cv = 10)
+accuracies.mean()
+accuracies.std()
+
+#parameters = [{'n_estimators' : [380], 'max_depth' : [2],
+#                           'min_samples_split' : [2],
+#                           'learning_rate' : [0.06]}]
+#grid_search = GridSearchCV(estimator = clf,
+#                           param_grid = parameters,
+#                           scoring = 'explained_variance',
+#                           cv = 10,
+#                           n_jobs = -1)
+#grid_search = grid_search.fit(X_train, y_train)
+#best_accuracy = grid_search.best_score_
+#best_parameters = grid_search.best_params_
+#print(best_accuracy)
+#accuracies = cross_val_score(estimator = clf, X = X_train, y = y_train, cv = 10)
+#accuracies.mean()
 
 #Plotting cross validated errors.
 fig, ax = plt.subplots()
 ax.scatter(y_test, gb_pred, edgecolors=(0, 0, 0), alpha=1, color='red')
 ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], '--', lw=3, color = 'black')
 ax.set(xlabel='Measured', ylabel='Predicted')
-plt.title('Gradient Boosting Regressor')
+plt.title('Gradient Boosting')
 plt.show()
 
 accuracies = cross_val_score(estimator = gboost, X = X_train, y = y_train, cv = 10)
@@ -311,17 +435,20 @@ lasso_pred=lass_reg.predict(X_test)
 RMLSE = np.sqrt(mean_squared_log_error(y_test,lasso_pred))
 print("Gradient Boosting:", RMLSE)
 
-# Applying Grid Search to find the best model and the best parameters
-#from sklearn.model_selection import GridSearchCV
-#parameters = [{'alpha': [0.00001,0.0001,0.001,0.01,0.1,0.8], 'max_iter': [5,50,100,200]}]
-#grid_search = GridSearchCV(estimator = lass_reg,
-#                           param_grid = parameters,
-#                           scoring = 'explained_variance',
-#                           cv = 10,
-#                           n_jobs = -1)
-#grid_search = grid_search.fit(X_train, y_train)
-#best_accuracy = grid_search.best_score_
-#best_parameters = grid_search.best_params_
+ #Applying Grid Search to find the best model and the best parameters
+
+parameters = [{'alpha': [0.00001,0.0001,0.001,0.01,0.1,0.8], 'max_iter': [5,50,100,200]}]
+grid_search = GridSearchCV(estimator = lass_reg,
+                           param_grid = parameters,
+                           scoring = 'explained_variance',
+                           cv = 10,
+                           n_jobs = -1)
+grid_search = grid_search.fit(X_train, y_train)
+best_accuracy = grid_search.best_score_
+best_parameters = grid_search.best_params_
+
+import time
+start = time.time()
 
 #XGBoost
 import xgboost as xgb
@@ -330,20 +457,27 @@ regr = xgb.XGBRegressor(
                         learning_rate=0.04,
                         max_depth=5,
                         min_child_weight=1,
-                        n_estimators=400,
+                        n_estimators=250,
                         reg_alpha=1,
                         reg_lambda=0.6,
                         subsample=0.6,
                         silent=True)
 
 regr=regr.fit(X_train, y_train)
+end = time.time()
+print(end - start)
 xg_pred = regr.predict(X_test)
 RMLSE = np.sqrt(mean_squared_log_error(y_test, xg_pred))
+print(RMLSE)
+
+accuracies = cross_val_score(estimator = regr, X = X_train, y = y_train, cv = 10)
+accuracies.mean()
+accuracies.std()
 
 #0.7, 0.05, 4, 1000, 1, 0.6
-#parameters = [{'colsample_bytree': [0.7,0.8], 'learning_rate': [0.04,0.05]
-#                ,'min_child_weight':[4,5],'n_estimators':[500,1000,1500], 'reg_alpha':[1,10,50]
-#                , 'subsample':[0.4,0.6]}]
+#parameters = [{'colsample_bytree': [0.8], 'learning_rate': [0.04]
+#                ,'min_child_weight':[5],'n_estimators':[240], 'reg_alpha':[1]
+#                ,'reg_lambda':[0.6], 'subsample':[0.6]}]
 #grid_search = GridSearchCV(estimator = regr,
 #                           param_grid = parameters,
 #                           scoring = 'explained_variance',
@@ -352,8 +486,10 @@ RMLSE = np.sqrt(mean_squared_log_error(y_test, xg_pred))
 #grid_search = grid_search.fit(X_train, y_train)
 #best_accuracy = grid_search.best_score_
 #best_parameters = grid_search.best_params_
-
+#print(best_accuracy)
 print ("Root Mean Square Logarithmic Error (XG Boost)=",RMLSE)
+
+
 
 #Plotting cross validated errors.
 fig, ax = plt.subplots()
@@ -363,22 +499,42 @@ ax.set(xlabel='Measured', ylabel='Predicted')
 plt.title('Extreme Gradient Boosting(XG Boost)')
 plt.show()
 
+import time
+start = time.time()
 #AdaBoost
 from sklearn.ensemble import AdaBoostRegressor
 from sklearn.tree import DecisionTreeRegressor
 regr_ada = AdaBoostRegressor(DecisionTreeRegressor(max_depth=15),n_estimators=600,random_state=0,
                              learning_rate=2,loss="exponential")
 regr_ada.fit(X_train, y_train)
+end = time.time()
+print(end - start)
+
 ada_pred=regr_ada.predict(X_test)
 RMLSE = np.sqrt(mean_squared_log_error(y_test, ada_pred))
 print ("Root Mean Square Logarithmic Error (Adaptive Boosting)=",RMLSE)
+
+parameters = [{'n_estimators':[310], 'learning_rate':[2]}]
+grid_search = GridSearchCV(estimator = regr_ada,
+                           param_grid = parameters,
+                           scoring = 'explained_variance',
+                           cv = 10,
+                           n_jobs = -1)
+grid_search = grid_search.fit(X_train, y_train)
+best_accuracy = grid_search.best_score_
+best_parameters = grid_search.best_params_
+print(best_accuracy)
+
+accuracies = cross_val_score(estimator = regr_ada, X = X_train, y = y_train, cv = 10)
+accuracies.mean()
+accuracies.std()
 
 #Plotting cross validated errors.
 fig, ax = plt.subplots()
 ax.scatter(y_test, ada_pred, edgecolors=(0, 0, 0), alpha=1, color='red')
 ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], '--', lw=3, color = 'black')
 ax.set(xlabel='Measured', ylabel='Predicted')
-plt.title('Adaptive Boosting')
+plt.title('Adaptive Boosting(AdaBoost)')
 plt.show()
 
 y_ada = regr_ada.predict(X_test_df)  
@@ -388,8 +544,36 @@ y_rforest = rforest.predict(X_test_df)
 y_pred = (y_xgb+y_gboost+y_rforest)/3
 
 #Ensemble Models
-ensemble_pred=(gb_pred+xg_pred+forest_pred)/3
+min = 999999
+
+#a = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1]
+#b = [0,0.1,0.2,0.3,0.4,0.5,0.6,0.7,0.8,0.9,1]
+#
+#for i in a:
+#    for j in b:
+#        if i+j <= 1:
+#            c = 1-(i+j)
+#            ensemble_pred=((i*gb_pred)+(j*xg_pred)+(c*forest_pred))
+#            RMLSE = np.sqrt(mean_squared_log_error(y_test, ensemble_pred))
+#            if(min>RMLSE):
+#                min = RMLSE
+#                x = i
+#                y = j
+#                z = c
+#print ("Root Mean Square Logarithmic Error (Ensemble Model ) =",RMLSE)
+#0.12125718654461237
+
+a = 0.2
+b = 0.5
+c = 1-(a+b)
+
+ensemble_pred=((a)*gb_pred+(b)*xg_pred+(c)*forest_pred)
 RMLSE = np.sqrt(mean_squared_log_error(y_test, ensemble_pred))
+if(min>RMLSE):
+    min = RMLSE
+    x = a
+    y = b
+    z = c
 print ("Root Mean Square Logarithmic Error (Ensemble Model ) =",RMLSE)
 
 #Plotting cross validated errors.
@@ -397,7 +581,7 @@ fig, ax = plt.subplots()
 ax.scatter(y_test, ensemble_pred, edgecolors=(0, 0, 0), alpha=1, color='red')
 ax.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], '--', lw=3, color = 'black')
 ax.set(xlabel='Measured', ylabel='Predicted')
-plt.title('Ensemble Models')
+plt.title('Ensemble Model')
 plt.show()
 
 submission = pd.DataFrame({
